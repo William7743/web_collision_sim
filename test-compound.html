@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>复合体测试</title>
+</head>
+<body>
+    <h1>复合体测试页面</h1>
+    <button onclick="testCompound()">测试创建复合体</button>
+    <div id="output" style="margin-top: 20px; padding: 10px; background: #f0f0f0; white-space: pre-wrap;"></div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import * as CANNON from 'cannon-es';
+
+        window.testCompound = function() {
+            const output = document.getElementById('output');
+            output.textContent = '';
+
+            function log(msg) {
+                console.log(msg);
+                output.textContent += msg + '\n';
+            }
+
+            try {
+                log('开始测试...');
+                log('CANNON 版本: ' + CANNON.version);
+
+                // 创建复合体
+                log('1. 创建 CANNON.Compound...');
+                const compound = new CANNON.Compound();
+                log('   ✓ Compound 创建成功');
+
+                // 添加一个盒子
+                log('2. 添加盒子形状...');
+                const boxShape = new CANNON.Box(new CANNON.Vec3(0.5, 0.5, 0.5));
+                compound.addChildShape(boxShape, new CANNON.Vec3(0, 0, 0));
+                log('   ✓ 盒子添加成功');
+
+                // 添加一个球体
+                log('3. 添加球体形状...');
+                const sphereShape = new CANNON.Sphere(0.3);
+                compound.addChildShape(sphereShape, new CANNON.Vec3(0, 0.5, 0));
+                log('   ✓ 球体添加成功');
+
+                // 添加一个圆柱
+                log('4. 添加圆柱形状...');
+                const cylinderShape = new CANNON.Cylinder(0.3, 0.3, 1, 16);
+                compound.addChildShape(cylinderShape, new CANNON.Vec3(1, 0, 0));
+                log('   ✓ 圆柱添加成功');
+
+                // 创建刚体
+                log('5. 创建刚体...');
+                const body = new CANNON.Body({
+                    mass: 2,
+                    shape: compound,
+                    position: new CANNON.Vec3(0, 5, 0)
+                });
+                log('   ✓ 刚体创建成功');
+
+                log('\n✅ 所有测试通过！');
+                log('复合体包含 ' + compound.shapes.length + ' 个形状');
+
+            } catch (error) {
+                log('\n❌ 错误: ' + error.message);
+                log('   堆栈: ' + error.stack);
+            }
+        };
+
+        log('页面已加载，点击按钮测试');
+    </script>
+</body>
+</html>

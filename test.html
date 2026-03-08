@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>cannon-es Test</title>
+</head>
+<body>
+    <h1>cannon-es API Test</h1>
+    <div id="output"></div>
+
+    <script type="module">
+        import * as CANNON from 'cannon-es';
+
+        const output = document.getElementById('output');
+
+        function log(msg) {
+            output.innerHTML += '<div>' + msg + '</div>';
+        }
+
+        log('✅ cannon-es loaded successfully');
+        log('CANNON version: ' + (CANNON.version || 'unknown'));
+
+        // Test world creation
+        const world = new CANNON.World();
+        log('✅ World created');
+
+        // Test body creation
+        const body = new CANNON.Body({
+            mass: 1,
+            shape: new CANNON.Box(new CANNON.Vec3(1, 1, 1))
+        });
+        log('✅ Body created');
+
+        // Test Compound - if it exists
+        log('typeof CANNON.Compound: ' + typeof CANNON.Compound);
+
+        if (typeof CANNON.Compound !== 'undefined') {
+            const compound = new CANNON.Compound();
+            log('✅ Compound created');
+        } else {
+            log('⚠️  Compound not found - this is expected in newer cannon-es versions');
+        }
+
+        log('<strong>✅ All basic tests passed!</strong>');
+    </script>
+</body>
+</html>

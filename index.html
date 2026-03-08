@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>刚体碰撞仿真 - Cannon.js + Three.js</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            background: #000;
+        }
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+        }
+        #controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            min-width: 200px;
+        }
+        #controls h2 {
+            margin: 0 0 10px 0;
+            font-size: 18px;
+        }
+        #controls h3 {
+            margin: 15px 0 5px 0;
+            font-size: 14px;
+            color: #aaa;
+            text-transform: uppercase;
+        }
+        #controls button {
+            display: block;
+            width: 100%;
+            margin: 5px 0;
+            padding: 10px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        #controls button:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+        #controls button:active {
+            transform: translateY(0);
+        }
+        #info {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+
+    <div id="controls">
+        <h2>🎮 控制面板</h2>
+
+        <h3>基础形状</h3>
+        <button onclick="app.addBox()">📦 添加盒子</button>
+        <button onclick="app.addSphere()">🔵 添加球体</button>
+        <button onclick="app.addCylinder()">🛢️ 添加圆柱</button>
+        <button onclick="app.addCompound()">🧩 添加复合体</button>
+
+        <h3>复杂复合体</h3>
+        <button onclick="app.createRobotArm()">🤖 机器人手臂</button>
+        <button onclick="app.createQuadruped()">🦿 四足动物</button>
+        <button onclick="app.createTable()">🪑 桌子</button>
+        <button onclick="app.createChair()">🪑 椅子</button>
+        <button onclick="app.createBridge()">🌉 桥梁</button>
+        <button onclick="app.createRock()">🪨 岩石</button>
+        <button onclick="app.createMolecule()">⚛️ 分子结构</button>
+        <button onclick="app.createChain()">⛓️ 链条</button>
+
+        <h3>约束系统</h3>
+        <button onclick="app.createPendulum()">⚖️ 创建钟摆</button>
+        <button onclick="app.createHingedBoxes()">🔗 铰链盒子</button>
+        <button onclick="app.createVehicle()">🚗 创建车辆</button>
+        <button onclick="app.createLockConstraintDemo()">🔒 固定约束</button>
+        <button onclick="app.createDistanceConstraintDemo()">📏 距离约束</button>
+        <button onclick="app.createConeTwistConstraintDemo()">🎥 圆锥扭转</button>
+
+        <h3>演示场景</h3>
+        <button onclick="app.createRobotCollaborationScene()">🤖 机器人协作</button>
+        <button onclick="app.createMoleculeCollisionScene()">⚛️ 分子碰撞</button>
+        <button onclick="app.createBuildingCollapseScene()">🏗️ 建筑倒塌</button>
+
+        <h3>基础场景</h3>
+        <button onclick="app.createStack()">📚 堆叠测试</button>
+        <button onclick="app.createPyramid()">🔺 金字塔</button>
+        <button onclick="app.createBallRain()">🌧️ 球体雨</button>
+
+        <h3>场景控制</h3>
+        <button onclick="app.resetScene()" style="background: #f44336;">🔄 重置场景</button>
+        <a href="editor.html" style="display: block; text-decoration: none; margin-top: 10px;">
+            <button style="background: #0af; width: 100%; cursor: pointer;">🎨 打开编辑器</button>
+        </a>
+    </div>
+
+    <div id="info">
+        <div>物体数量: <span id="object-count">0</span></div>
+        <div>FPS: <span id="fps">60</span></div>
+        <div>鼠标左键：拖拽物体</div>
+        <div>鼠标右键：旋转视角</div>
+        <div>滚轮：缩放</div>
+    </div>
+
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>

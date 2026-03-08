@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>自定义碰撞编辑器 - Cannon.js + Three.js</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a1a;
+        }
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* 顶部工具栏 */
+        #toolbar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: linear-gradient(180deg, #2d2d2d 0%, #1a1a1a 100%);
+            border-bottom: 2px solid #0af;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 100;
+        }
+        #toolbar h1 {
+            color: #0af;
+            font-size: 20px;
+            margin-right: 30px;
+        }
+        .toolbar-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .toolbar-btn {
+            padding: 8px 16px;
+            background: #333;
+            color: white;
+            border: 1px solid #555;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+        .toolbar-btn:hover {
+            background: #444;
+            border-color: #0af;
+        }
+        .toolbar-btn.primary {
+            background: #0af;
+            border-color: #0af;
+        }
+        .toolbar-btn.primary:hover {
+            background: #08c;
+        }
+        .toolbar-btn.danger {
+            background: #f44;
+            border-color: #f44;
+        }
+        .toolbar-btn.danger:hover {
+            background: #d33;
+        }
+        .toolbar-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .mode-indicator {
+            padding: 5px 15px;
+            background: #333;
+            color: #aaa;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .mode-indicator.editing {
+            background: #0af;
+            color: white;
+        }
+        .mode-indicator.running {
+            background: #4f4;
+            color: white;
+        }
+
+        /* 左侧面板 */
+        #left-panel {
+            position: absolute;
+            top: 60px;
+            left: 0;
+            width: 280px;
+            bottom: 0;
+            background: rgba(30, 30, 30, 0.95);
+            border-right: 1px solid #444;
+            overflow-y: auto;
+            z-index: 90;
+        }
+        .panel-section {
+            padding: 15px;
+            border-bottom: 1px solid #333;
+        }
+        .panel-section h3 {
+            color: #0af;
+            font-size: 14px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .add-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        .add-btn {
+            padding: 12px;
+            background: #333;
+            color: white;
+            border: 1px solid #555;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 13px;
+        }
+        .add-btn:hover {
+            background: #444;
+            border-color: #0af;
+            transform: translateY(-1px);
+        }
+        .add-btn .icon {
+            font-size: 20px;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        /* 刚体列表 */
+        #body-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .body-item {
+            padding: 10px;
+            background: #222;
+            border: 1px solid #333;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .body-item:hover {
+            background: #2a2a2a;
+            border-color: #444;
+        }
+        .body-item.selected {
+            background: #0af;
+            border-color: #0af;
+            color: white;
+        }
+        .body-item.constraint-selected {
+            background: #2a5a2a;
+            border-color: #4f4;
+        }
+        .body-item .name {
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+        .body-item .type {
+            font-size: 11px;
+            color: #888;
+        }
+        .body-item.selected .type {
+            color: rgba(255,255,255,0.8);
+        }
+        .body-item.constraint-selected .type {
+            color: rgba(255,255,255,0.7);
+        }
+        .body-item .delete-btn {
+            float: right;
+            color: #f44;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        /* 右侧参数面板 */
+        #right-panel {
+            position: absolute;
+            top: 60px;
+            right: 0;
+            width: 320px;
+            bottom: 0;
+            background: rgba(30, 30, 30, 0.95);
+            border-left: 1px solid #444;
+            overflow-y: auto;
+            z-index: 90;
+        }
+        .param-group {
+            margin-bottom: 15px;
+        }
+        .param-group label {
+            display: block;
+            color: #aaa;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+        .param-group input[type="number"],
+        .param-group input[type="text"],
+        .param-group select {
+            width: 100%;
+            padding: 8px;
+            background: #222;
+            border: 1px solid #444;
+            border-radius: 4px;
+            color: white;
+            font-size: 13px;
+        }
+        .param-group input:focus,
+        .param-group select:focus {
+            outline: none;
+            border-color: #0af;
+        }
+        .param-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 5px;
+        }
+        .param-row input {
+            padding: 6px !important;
+        }
+        .color-preview {
+            width: 100%;
+            height: 30px;
+            border: 1px solid #444;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .no-selection {
+            padding: 30px;
+            text-align: center;
+            color: #666;
+        }
+        .no-selection .icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        /* 约束面板 */
+        #constraint-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .constraint-item {
+            padding: 8px;
+            background: #222;
+            border: 1px solid #333;
+            border-radius: 4px;
+            margin-bottom: 6px;
+            font-size: 12px;
+        }
+        .constraint-item .delete-btn {
+            float: right;
+            color: #f44;
+            cursor: pointer;
+        }
+        .constraint-select-info {
+            padding: 10px;
+            background: #2a2a2a;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            font-size: 12px;
+            color: #aaa;
+        }
+
+        /* 提示信息 */
+        .hint {
+            padding: 10px;
+            background: #0af;
+            color: white;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-bottom: 10px;
+        }
+
+        /* 滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        /* 统计信息 */
+        #stats {
+            position: absolute;
+            bottom: 10px;
+            left: 300px;
+            color: #0af;
+            font-size: 12px;
+            z-index: 100;
+            background: rgba(0,0,0,0.7);
+            padding: 8px 12px;
+            border-radius: 4px;
+        }
+    </style>
+  <script type="module" crossorigin src="/assets/main-BizuYgEv.js"></script>
+</head>
+<body>
+    <div id="canvas-container"></div>
+
+    <!-- 顶部工具栏 -->
+    <div id="toolbar">
+        <div class="toolbar-group">
+            <h1>🎨 自定义碰撞编辑器</h1>
+            <div id="mode-indicator" class="mode-indicator editing">编辑模式</div>
+        </div>
+        <div class="toolbar-group">
+            <button id="btn-run" class="toolbar-btn primary">▶ 运行模拟</button>
+            <button id="btn-stop" class="toolbar-btn danger" disabled>⏹ 停止</button>
+            <button id="btn-reset" class="toolbar-btn" disabled>↺ 重置位置</button>
+        </div>
+        <div class="toolbar-group">
+            <button id="btn-save" class="toolbar-btn">💾 保存场景</button>
+            <button id="btn-load" class="toolbar-btn">📂 加载场景</button>
+            <button id="btn-clear" class="toolbar-btn danger">🗑 清空</button>
+        </div>
+    </div>
+
+    <!-- 左侧面板 -->
+    <div id="left-panel">
+        <div class="panel-section">
+            <h3>添加刚体</h3>
+            <div class="add-buttons">
+                <button class="add-btn" onclick="editor.addBox()">
+                    <span class="icon">📦</span>
+                    盒子
+                </button>
+                <button class="add-btn" onclick="editor.addSphere()">
+                    <span class="icon">🔮</span>
+                    球体
+                </button>
+                <button class="add-btn" onclick="editor.addCylinder()">
+                    <span class="icon">🥫</span>
+                    圆柱
+                </button>
+                <button class="add-btn" onclick="editor.startCompoundEditor()" style="background: #0af; color: white;">
+                    <span class="icon">🧩</span>
+                    拼装复合体
+                </button>
+            </div>
+        </div>
+
+        <!-- 复合体编辑器 -->
+        <div class="panel-section" id="compound-editor" style="display: none;">
+            <h3>🧩 复合体编辑器</h3>
+
+            <div style="margin-bottom: 10px;">
+                <div style="color: #aaa; font-size: 11px; margin-bottom: 5px;">添加形状到复合体：</div>
+                <div class="add-buttons" style="grid-template-columns: 1fr 1fr 1fr;">
+                    <button class="add-btn" onclick="editor.addShapeToCompound('box')" style="padding: 8px; font-size: 12px;">
+                        + 盒子
+                    </button>
+                    <button class="add-btn" onclick="editor.addShapeToCompound('sphere')" style="padding: 8px; font-size: 12px;">
+                        + 球体
+                    </button>
+                    <button class="add-btn" onclick="editor.addShapeToCompound('cylinder')" style="padding: 8px; font-size: 12px;">
+                        + 圆柱
+                    </button>
+                </div>
+            </div>
+
+            <div id="compound-shapes-list" style="max-height: 250px; overflow-y: auto; margin-bottom: 10px;">
+                <div style="color: #666; font-size: 12px; text-align: center; padding: 20px;">
+                    暂无形状<br>点击上方按钮添加
+                </div>
+            </div>
+
+            <div class="param-group">
+                <label>复合体质量 (kg)</label>
+                <input type="number" step="0.1" min="0.1" value="2" id="compound-mass" style="width: 100%; padding: 8px; background: #222; border: 1px solid #444; border-radius: 4px; color: white;">
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px;">
+                <button class="toolbar-btn" id="btn-create-compound-final" onclick="editor.createCompound()" style="background: #0af; color: white; border: none;">
+                    ✓ 创建复合体
+                </button>
+                <button class="toolbar-btn" onclick="editor.cancelCompoundEditor()" style="background: #f44; color: white; border: none;">
+                    ✗ 取消
+                </button>
+            </div>
+
+            <div style="margin-top: 10px; padding: 8px; background: #222; border-radius: 4px; font-size: 11px;">
+                <div style="color: #0af; margin-bottom: 5px;">🔍 调试信息:</div>
+                <div id="compound-debug" style="color: #888;">形状数量: 0</div>
+            </div>
+        </div>
+
+        <div class="panel-section">
+            <h3>🌍 世界设置</h3>
+
+            <div class="param-group">
+                <label>地面重力 (m/s²)</label>
+                <input type="number" step="0.1" value="-9.82" id="gravity-y"
+                       style="width: 100%; padding: 8px; background: #222; border: 1px solid #444; border-radius: 4px; color: white; font-size: 14px;"
+                       onchange="editor.updateGravity('y', this.value)">
+                <div style="font-size: 11px; color: #888; margin-top: 5px;">
+                    💡 推荐值: <span style="color: #0af; cursor: pointer;" onclick="document.getElementById('gravity-y').value=-9.82; editor.updateGravity('y', -9.82);">-9.82 地球</span> |
+                    <span style="color: #0af; cursor: pointer;" onclick="document.getElementById('gravity-y').value=-1.62; editor.updateGravity('y', -1.62);">-1.62 月球</span> |
+                    <span style="color: #0af; cursor: pointer;" onclick="document.getElementById('gravity-y').value=0; editor.updateGravity('y', 0);">0 太空</span>
+                </div>
+            </div>
+
+            <div class="param-group">
+                <label>
+                    <input type="checkbox" id="enable-boundary" onchange="editor.toggleBoundary(this.checked)" style="width: auto; margin-right: 8px;">
+                    启用边界删除（球形范围）
+                </label>
+                <div style="font-size: 11px; color: #888; margin-top: 3px;">
+                    物体超出球体范围自动删除
+                </div>
+            </div>
+
+            <div id="boundary-settings" style="display: none;">
+                <div class="param-group">
+                    <label>边界半径 (米)</label>
+                    <input type="number" step="1" min="1" value="15" id="boundary-radius"
+                           style="width: 100%; padding: 8px; background: #222; border: 1px solid #444; border-radius: 4px; color: white; font-size: 14px;"
+                           onchange="editor.updateBoundaryRadius(this.value)">
+                    <div style="font-size: 11px; color: #888; margin-top: 5px;">
+                        💡 推荐值:
+                        <span style="color: #0af; cursor: pointer;" onclick="document.getElementById('boundary-radius').value=10; editor.updateBoundaryRadius(10);">10 小</span> |
+                        <span style="color: #0af; cursor: pointer;" onclick="document.getElementById('boundary-radius').value=20; editor.updateBoundaryRadius(20);">20 中</span> |
+                        <span style="color: #0af; cursor: pointer;" onclick="document.getElementById('boundary-radius').value=30; editor.updateBoundaryRadius(30);">30 大</span>
+                    </div>
+                    <div style="font-size: 11px; color: #aaa; margin-top: 3px;">
+                        以原点(0,0,0)为中心的球体范围
+                    </div>
+                </div>
+
+                <div class="param-group" style="margin-top: 10px;">
+                    <label>
+                        <input type="checkbox" id="show-boundary" onchange="editor.toggleBoundaryVisualization(this.checked)" style="width: auto; margin-right: 8px;" checked>
+                        显示边界球体（红色线框）
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel-section">
+            <h3>刚体列表</h3>
+            <div id="body-list">
+                <div class="no-selection">
+                    <div>暂无刚体</div>
+                    <small>点击上方按钮添加</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel-section">
+            <h3>添加约束</h3>
+            <div class="hint" id="constraint-hint">
+                💡 在刚体列表中 <strong>Mac: 按住 ⌘ Command</strong> / <strong>Windows: 按住 Ctrl</strong> 点击两个刚体
+            </div>
+
+            <div class="constraint-select-info">
+                <div style="margin-bottom: 5px; color: #888;">已选择的刚体:</div>
+                <div id="selected-bodies-display" style="display: flex; gap: 5px; flex-wrap: wrap;">
+                    <span style="color: #666; font-size: 12px;">未选择</span>
+                </div>
+            </div>
+
+            <div class="param-group">
+                <label>约束类型</label>
+                <select id="constraint-type">
+                    <option value="hinge">🔗 铰链约束 - 像门铰链一样旋转</option>
+                    <option value="pointToPoint">📍 点对点 - 两点连接</option>
+                    <option value="distance">📏 距离约束 - 保持固定距离</option>
+                    <option value="lock">🔒 固定约束 - 完全固定</option>
+                </select>
+            </div>
+
+            <button class="add-btn" id="btn-create-constraint" style="width: 100%; padding: 12px; background: #0af; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;" disabled>
+                ⚡ 创建约束
+            </button>
+
+            <div style="margin-top: 15px;">
+                <div style="color: #aaa; font-size: 12px; margin-bottom: 5px;">约束列表:</div>
+                <div id="constraint-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 右侧参数面板 -->
+    <div id="right-panel">
+        <div id="params-container">
+            <div class="no-selection">
+                <div class="icon">👆</div>
+                <div>选择一个刚体</div>
+                <div>查看和编辑参数</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 统计信息 -->
+    <div id="stats">
+        刚体: 0 | 约束: 0 | FPS: 60
+    </div>
+
+</body>
+</html>
